@@ -4,10 +4,10 @@ import {
   FastifyInstance,
   FastifyRequest,
   FastifySchema,
-  HTTPMethods as FastifyHTTPMethods,
   RouteHandlerMethod,
   FastifyReply,
   RawServerBase,
+  RouteGenericInterface
 } from "fastify";
 import fastifySwagger, { FastifyDynamicSwaggerOptions } from "@fastify/swagger";
 import fastifySwaggerUi, { FastifySwaggerUiOptions } from "@fastify/swagger-ui";
@@ -33,8 +33,13 @@ export type RegisterOptions<M extends M_> = {
   readonly swaggerUiOptions?: false | FastifySwaggerUiOptions;
 };
 
-type V_ = Lowercase<FastifyHTTPMethods> & keyof FastifyInstance;
-
+/*
+* fastify removes some http methods: https://fastify.dev/docs/latest/Guides/Migration-Guide-V5/#removal-of-some-non-standard-http-methods
+* this lead to types errors, so I specify valid methods explicitly, if I understand correctly V_ is used only internally, so it will not break anything for users;
+*/
+type DefaultFastifyHTTPMethods = "delete" | "get" | "head" | "patch" | "post" | "put" | "options" | "report" | "mkcalendar";
+type V_ = Exclude<DefaultFastifyHTTPMethods, "report" | "mkcalendar"> & keyof FastifyInstance;
+  
 type P_<M extends M_> = void | SchemaKey<M>;
 type B_<M extends M_> = void | SchemaKey<M>;
 type Q_<M extends M_> = void | SchemaKey<M>;
@@ -77,6 +82,7 @@ type RouteHandler<
 > = (
   params: RouteHandlerParams<M, P, B, Q, R, Rx>,
   reply: FastifyReply<
+    RouteGenericInterface,
     RawServerBase,
     IncomingMessage,
     ServerResponse,
@@ -298,7 +304,7 @@ export const register = async <M extends M_>(
       }
       customSchema.response = customSchemaResponse;
     }
-
+    
     f[method]<{
       Params: SchemaTypeOption<M, P>;
       Body: SchemaTypeOption<M, B>;
